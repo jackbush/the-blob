@@ -13,10 +13,10 @@ const config = {
   acceleration: 100,
 
   // colours
-  blobHex: "#53C1F0",
+  blobHex: "#00D4FF",
   // float: 0 = transparent, 255 = opaque
-  opacity: 40,
-  backgroundColour: "#171A26",
+  opacity: 50,
+  backgroundColour: "#071E38",
 };
 
 // Convert speed to be framerate-independent, negated to match usage convention
@@ -29,6 +29,7 @@ const sketch = function (p) {
 
   p.setup = function () {
     p.frameRate(config.frameRate);
+    document.body.style.background = config.backgroundColour;
 
     const el = document.getElementById(CONTAINER_ID);
     container = { width: el.clientWidth, height: el.clientHeight };
