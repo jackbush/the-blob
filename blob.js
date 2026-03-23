@@ -107,7 +107,7 @@ const sketch = function (p) {
       this.vertex = vertex;
 
       const jitter = (n, factor = 0.1) => n + n * factor * (Math.random() * 2 - 1);
-      this.radius = jitter(container.height * 0.35, 0.25);
+      this.radius = jitter(Math.min(container.width, container.height) * 0.35, 0.25);
       this.initialRadius = this.radius;
       this.minRadius = this.radius * (1 - config.spread);
       this.maxRadius = this.radius * (1 + config.spread);
