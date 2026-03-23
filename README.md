@@ -12,6 +12,7 @@ npm run preview  # Preview the dist/ build locally
 
 ## Architecture
 **Sketch pattern**: `blob.js` is a p5.js instance-mode sketch (`new p5(sketch)`). `setup()` creates the canvas; `draw()` runs the animation loop.
+
 **Object hierarchy**: `Cluster` → `Blob[]` → `Point[]`.
 - Each `Blob` has 5 vertices that oscillate between min/max radii using acceleration physics.
 - `Cluster` holds multiple `Blob` layers drawn with low opacity to create depth.
