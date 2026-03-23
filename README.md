@@ -1,5 +1,5 @@
 # The Blob
-A browser-based generative art project using [p5.js](https://p5js.org/).
+A browser-based generative art project using [p5.js](https://p5js.org/). Built with Vite, deployed to GitHub Pages at `https://jackbush.github.io/the-blob/`.
 
 ## Commands
 
@@ -10,10 +10,11 @@ npm run build    # Production build → dist/
 npm run preview  # Preview the dist/ build locally
 ```
 
-## Architecture
-**Sketch pattern**: `blob.js` is a p5.js instance-mode sketch (`new p5(sketch)`). `setup()` creates the canvas; `draw()` runs the animation loop.
+## Sketch pattern
+`blob.js` is a p5.js instance-mode sketch (`new p5(sketch)`). `setup()` creates the canvas; `draw()` runs the animation loop.
 
-**Object hierarchy**: `Cluster` → `Blob[]` → `Point[]`.
+## Object hierarchy
+- `Cluster` → `Blob[]` → `Point[]`
 - Each `Blob` has 5 vertices that oscillate between min/max radii using acceleration physics.
 - `Cluster` holds multiple `Blob` layers drawn with low opacity to create depth.
 
