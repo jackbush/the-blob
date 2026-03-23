@@ -1,215 +1,153 @@
-const p5 = require("p5");
+import p5 from "p5";
 
-import { coreColour, semanticColour } from "./_tokens";
-import { measureContainer, jitter, getRgbFromHex } from "./_utils";
+const CONTAINER_ID = "jsSketchContainer";
 
-const blobSketchLoader = (containerId) => {
-  const sketch = function (p) {
-    let container;
-    let canvas;
-    let blob;
-    const config = {
-      frameRate: 60,
-      layers: 5,
-      // Decimal value between 0 and 1
-      // NOTE other stuff breaks when this isn't 0.1
-      spread: 0.1,
-      // Arbitrary constants...
-      speed: 20,
-      acceleration: 100,
+const config = {
+  frameRate: 60,
+  layers: 5,
+  // Decimal value between 0 and 1
+  // NOTE other stuff breaks when this isn't 0.1
+  spread: 0.1,
+  // Arbitrary constants...
+  speed: 20,
+  acceleration: 100,
 
-      // colours
-      blobHex: coreColour.lightBlue,
-      // float: 0 = transparent, 255 = opaque
-      opacity: 40,
-      backgroundColour: semanticColour.background,
-    };
+  // colours
+  blobHex: "#53C1F0",
+  // float: 0 = transparent, 255 = opaque
+  opacity: 40,
+  backgroundColour: "#171A26",
+};
 
-    // Convert speed to be independent of framerate (defaults to 60)
-    config.speed /= config.frameRate;
-    // Correct speed for how we actually use it -- otherwise things get really counterintuitive
-    config.speed *= -1;
-    // make a colour object from hex + opacity
-    config.blobColour = p.color(
-      getRgbFromHex(config.blobHex, "r"),
-      getRgbFromHex(config.blobHex, "g"),
-      getRgbFromHex(config.blobHex, "b"),
-      config.opacity,
-    );
+// Convert speed to be framerate-independent, negated to match usage convention
+config.speed = -(config.speed / config.frameRate);
 
-    p.setup = function () {
-      // Set framerate
-      p.frameRate(config.frameRate);
+const sketch = function (p) {
+  let container;
+  let blob;
+  let blobColour;
 
-      // Get container details
-      container = measureContainer(containerId);
+  p.setup = function () {
+    p.frameRate(config.frameRate);
 
-      // Create a canvas from container size
-      canvas = p.createCanvas(container.width, container.height);
+    const el = document.getElementById(CONTAINER_ID);
+    container = { width: el.clientWidth, height: el.clientHeight };
+    const canvas = p.createCanvas(container.width, container.height);
+    canvas.parent(CONTAINER_ID);
 
-      // Attach canvas to container
-      canvas.parent(containerId);
+    const base = p.color(config.blobHex);
+    blobColour = p.color(p.red(base), p.green(base), p.blue(base), config.opacity);
 
-      // Get position for brand device, create and add blobs
-      const position = p.createVector(
-        container.width * 0.5,
-        container.height * 0.5,
-      );
-      blob = new Cluster(position);
-      blob.add(config.layers);
+    blob = new Cluster(p.createVector(container.width * 0.5, container.height * 0.5));
+    blob.add(config.layers);
 
-      // Set p5's fill and stroke here, as they don't change
-      p.fill(config.blobColour);
-      p.noStroke();
-    };
+    p.fill(blobColour);
+    p.noStroke();
+  };
 
-    // Set to re-start on window resize
-    p.windowResized = p.setup;
+  p.windowResized = p.setup;
 
-    p.draw = function () {
-      p.background(config.backgroundColour);
-      blob.update();
-      blob.display();
-    };
+  p.draw = function () {
+    p.background(config.backgroundColour);
+    blob.update();
+    blob.display();
+  };
 
-    // A Cluster is a collection of Blobs, which share a center.
-    function Cluster(position) {
+  // A Cluster is a collection of Blobs sharing a center.
+  class Cluster {
+    constructor(position) {
       this.blobs = [];
       this.center = p.createVector(position.x, position.y);
     }
 
-    Cluster.prototype.add = function (numberOfLayers) {
-      numberOfLayers = numberOfLayers || 1;
+    add(numberOfLayers = 1) {
       for (let i = 0; i < numberOfLayers; i++) {
         this.blobs.push(new Blob(this.center));
       }
-    };
+    }
 
-    Cluster.prototype.update = function () {
-      this.blobs.forEach(function (blob) {
-        blob.update();
-      });
-    };
+    update() {
+      this.blobs.forEach((blob) => blob.update());
+    }
 
-    Cluster.prototype.display = function () {
-      this.blobs.forEach(function (blob) {
-        blob.display();
-      });
-    };
+    display() {
+      this.blobs.forEach((blob) => blob.display());
+    }
+  }
 
-    // A Blob is an irregular, undulating shape
-    function Blob(position) {
+  // A Blob is an irregular, undulating shape
+  class Blob {
+    constructor(position) {
       this.position = p.createVector(position.x, position.y);
-
       // Hard-coded because the coordinate system only works for five!
-      this.points = [
-        new Point(0),
-        new Point(1),
-        new Point(2),
-        new Point(3),
-        new Point(4),
-      ];
-
-      // This is the order we must draw points to create the blob:
-      // [0, 3, 1, 4, 2]
-
-      // This loops around three points further at each end, for a smooth join
+      this.points = Array.from({ length: 5 }, (_, i) => new Point(i));
+      // Loops around three points at each end for a smooth join
       this.drawCycle = [1, 4, 2, 0, 3, 1, 4, 2, 0, 3, 1];
     }
 
-    Blob.prototype.update = function () {
-      this.points.forEach(function (point) {
-        point.update();
-      });
-    };
+    update() {
+      this.points.forEach((point) => point.update());
+    }
 
-    Blob.prototype.display = function () {
+    display() {
       p.beginShape();
-
-      const that = this;
-      this.drawCycle.forEach(function (n) {
+      this.drawCycle.forEach((n) => {
         p.curveVertex(
-          that.position.x + that.points[n].position.x,
-          that.position.y + that.points[n].position.y,
+          this.position.x + this.points[n].position.x,
+          this.position.y + this.points[n].position.y,
         );
       });
-
       p.endShape(p.CLOSE);
-    };
+    }
+  }
 
-    function Point(vertex) {
+  class Point {
+    constructor(vertex) {
       // Vertex is an index, going clockwise from 12 o'clock
-      // This is used by the getCoordinates function
       this.vertex = vertex;
 
+      const jitter = (n, factor = 0.1) => n + n * factor * (Math.random() * 2 - 1);
       this.radius = jitter(container.height * 0.35, 0.25);
       this.initialRadius = this.radius;
       this.minRadius = this.radius * (1 - config.spread);
       this.maxRadius = this.radius * (1 + config.spread);
 
-      // Which direction the point starts moving in
       this.isGrowing = Math.random() < 0.5;
-
-      // Points are created with a position for flexibility
-      this.position = this.getCoordinates(this.vertex, this.radius);
+      this.position = this.getCoordinates(vertex, this.radius);
     }
 
-    Point.prototype.update = function () {
-      // Change directions if radius is out of bounds
-      // The adjustment of min and max here is because otherwise we get stuck in limits!
+    update() {
+      // Nudge direction if radius is at limits (avoids getting stuck)
       if (this.radius >= this.maxRadius * 0.99) this.isGrowing = false;
       if (this.radius <= this.minRadius * 1.01) this.isGrowing = true;
 
-      // position is the point's position between min (-spread) and max (spread);
       const position = this.radius / this.initialRadius - 1;
-      // delta is the difference between the current radius and the next one
       let delta =
-        config.acceleration * config.speed * Math.pow(position, 2) -
-        config.speed;
+        config.acceleration * config.speed * Math.pow(position, 2) - config.speed;
 
-      // Correct radius change for direction
       if (!this.isGrowing) delta *= -1;
 
-      // Update radius and position
       this.radius += delta;
       this.position = this.getCoordinates(this.vertex, this.radius);
-    };
+    }
 
-    Point.prototype.getCoordinates = function (vertex, radius) {
-      const result = {
-        x: 0.0,
-        y: 0.0,
-      };
-
-      // This is sepecifically for a five-point blob
-      // This only has three options because symmetry
+    getCoordinates(vertex, radius) {
+      // Five-point blob — only three cases due to symmetry; vertices 3 & 4 mirror x
+      const xSign = vertex === 3 || vertex === 4 ? -1 : 1;
       switch (vertex) {
         case 0:
-          result.x = 0;
-          result.y = -1 * radius;
-          break;
+          return { x: 0, y: -radius };
         case 1:
         case 4:
-          result.x = radius * p.cos(18);
-          result.y = -1 * radius * p.sin(18);
-          break;
+          return { x: xSign * radius * p.cos(18), y: -radius * p.sin(18) };
         case 2:
         case 3:
-          result.x = radius * p.cos(54);
-          result.y = radius * p.sin(54);
-          break;
+          return { x: xSign * radius * p.cos(54), y: radius * p.sin(54) };
         default:
-          break;
+          return { x: 0, y: 0 };
       }
-
-      // Mirrors for left-side points
-      if (vertex === 3 || vertex === 4) result.x *= -1;
-
-      return result;
-    };
-  };
-
-  return new p5(sketch, containerId);
+    }
+  }
 };
 
-blobSketchLoader("jsSketchContainer");
+new p5(sketch, CONTAINER_ID);
